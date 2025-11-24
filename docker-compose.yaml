@@ -1,0 +1,51 @@
+version: "3.9"
+
+services:
+  backend:
+    build: ./backend
+    container_name: novya_backend
+    command: sh -c "python manage.py migrate && python manage.py collectstatic --noinput && daphne -b 0.0.0.0 -p 8000 config.asgi:application"
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    environment:
+      - DB_HOST=db
+      - DB_NAME=novya
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+
+  ai_backend:
+    build: ./ai_backend
+    container_name: novya_ai_backend
+    volumes:
+      - ./ai_backend:/app
+    ports:
+      - "5000:5000"
+
+  frontend:
+    build: ./novya-frontend-main
+    container_name: novya_frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+      - ai_backend
+
+  db:
+    image: postgres:15
+    container_name: novya_db
+    restart: always
+    environment:
+      POSTGRES_DB: novya
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+volumes:
+  postgres_data:
